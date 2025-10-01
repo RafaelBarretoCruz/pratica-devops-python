@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
 
-      - name: Build and push Docker image
+      - name: Build and push Docker Image
         uses: docker/build-push-action@v4
         with:
 
@@ -34,3 +34,12 @@ jobs:
 
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python:latest, ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python:${{ github.sha }}
 
+      - uses: mr-smithers-excellent/docker-build-push@v6
+        name: Deploy Docker image
+        with:
+          image: rbceezus/pratica-devops-python
+          tags: 1.0
+          registry: docker.io
+          dockerfile: dockerfile
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
