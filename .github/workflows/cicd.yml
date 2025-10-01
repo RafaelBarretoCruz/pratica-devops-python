@@ -3,9 +3,10 @@ name: CI/CD Docker
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*.*.*'   # dispara também quando criar um release no formato v1.0.0
 
 jobs:
-
   build-and-push:
     runs-on: ubuntu-latest
 
@@ -22,36 +23,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract Docker metadata (tags e labels automáticos)
+      - name: Extract Docker metadata (tags automáticas)
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python
           tags: |
-            type=sha
-            type=ref,event=branch
             type=semver,pattern={{version}}
+            type=sha
             type=raw,value=latest
 
-      - name: Build Docker image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.meta.outputs.tags }}
-          format: 'table'
-          exit-code: '0' # se quiser falhar no CI quando encontrar vulnerabilidades críticas, coloque '1'
-          ignore-unfixed: true
-
-      - name: Push Docker image
-        if: success()
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
