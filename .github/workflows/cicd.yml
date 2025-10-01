@@ -7,15 +7,14 @@ on:
 jobs:
 
   build-and-push:
-
     runs-on: ubuntu-latest
 
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -23,14 +22,39 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Extract Docker metadata (tags e labels automáticos)
+        id: meta
+        uses: docker/metadata-action@v4
         with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest
 
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
           context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'table'
+          exit-code: '0' # se quiser falhar no CI quando encontrar vulnerabilidades críticas, coloque '1'
+          ignore-unfixed: true
+
+      - name: Push Docker image
+        if: success()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
           push: true
-
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python:latest, ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python:${{ github.sha }}
-
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
