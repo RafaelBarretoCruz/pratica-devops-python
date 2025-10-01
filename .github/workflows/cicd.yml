@@ -2,9 +2,10 @@ name: CI/CD Docker
 
 on:
   push:
-    branches: [ "main" ]
     tags:
-      - 'v*.*.*'   # dispara também quando criar um release no formato v1.0.0
+      - 'v*.*.*'   # dispara quando você criar uma tag tipo v1.0.0
+    branches:
+      - "main"
 
 jobs:
   build-and-push:
@@ -23,15 +24,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract Docker metadata (tags automáticas)
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/pratica-devops-python
           tags: |
-            type=semver,pattern={{version}}
-            type=sha
-            type=raw,value=latest
+            type=semver,pattern={{version}}   # cria 1.0.0 a partir da tag v1.0.0
+            type=raw,value=latest             # sempre cria o latest
+            type=sha                          # cria o sha do commit
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
